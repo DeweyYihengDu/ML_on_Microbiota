@@ -1,3 +1,5 @@
+# Compare differnet freatures of G2, G3 and G2&G3 to predict G4
+
 # Import necessary libraries
 import matplotlib.pyplot as plt
 import seaborn as sns
