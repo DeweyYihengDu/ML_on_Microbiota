@@ -16,8 +16,22 @@ The data from PRJNA576637 includes fasta sequence files of soil microorganisms t
 
 ### Model 1
 
+Model 1 uses the abundance of all bacteria except the top 5 to predict the abundance of these 5 bacteria, and compares the performance of different models.
+
+
+
 
 ### Model 2
 
+Model 2 uses the abundance of bacteria and the source of the sample to predict the situation of antibiotic pollution.
+
+The following code can be used to get the number of feature values used by the optimal model.
+
+```
+python code/Model2/model2.py
+```
 
 ### Model 3
+
+Model 3 is based on short-term incubation data to predict long-term incubation data. Our machine learning algorithm is based on random forests, as random forests performed best in Model 1. We used two different methods to handle data, one is to use Incubation 3 days and Incubation 10 days data separately, and the other is to use all incubation data. We found that using all incubation data performed better.
+
