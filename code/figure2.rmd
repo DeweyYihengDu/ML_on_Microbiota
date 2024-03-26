@@ -5,21 +5,14 @@ format: html
 
 # Figure 2b
 
-```{r}
+```{r setup}
+# Load necessary libraries for data manipulation and visualization
 library(tidyverse)
-# if (!requireNamespace("vegan", quietly = TRUE)) {
-#   install.packages("vegan")
-# }
 library(vegan)
-
 library(ggpubr)
 library(ggsignif)
-```
 
-
-```{r}
-data <- read.csv("../matrix/otu_merged_data.csv", header = TRUE, row.names = NULL)
-
+# Function to map antibiotic concentrations to categorical values
 map_concentration <- function(value) {
   if (is.na(value)) {
     return("unknown")
@@ -34,18 +27,28 @@ map_concentration <- function(value) {
   }
 }
 
+# Antibiotics to be processed
 antibiotics <- c('amoxicillin', 'oxytetracycline_dihydrate', 'sulfadiazine', 'trimethoprim', 'tylosin_tartrate', 'ciprofloxacin')
+```
+
+
+
+```{r}
+# Reading and preprocessing the data
+data <- read.csv("../matrix/otu_merged_data.csv", header = TRUE, row.names = NULL)
+
+# Applying concentration mapping to each antibiotic column
 for (antibiotic in antibiotics) {
   data[[antibiotic]] <- sapply(data[[antibiotic]], map_concentration)
 }
 
+# Function to map rows to sets based on antibiotic concentrations
 map_to_set <- function(row) {
   if (all(row == 'unknown')) {
     return('Unknown')
   }
   
   key <- paste(row, collapse = '_')
-  
   mapping <- list(
     'high_high_high_high_high_high' = 'Set 1',
     'high_high_high_none_none_none' = 'Set 2',
@@ -59,72 +62,80 @@ map_to_set <- function(row) {
   return(mapping[[key]] %||% 'Other')
 }
 
+# Applying set mapping to the data
 set_column <- apply(data[antibiotics], 1, map_to_set)
 data <- add_column(data, Set = set_column, .before = ncol(data) - 6)
+```
 
+
+```{r}
+# Data analysis for NMDS
 otu_data <- data[, 3:(ncol(data)-8)]
 otu_data[is.na(otu_data)] <- 0
 otu_data_clean <- otu_data[rowSums(otu_data) > 0, ]
 
+# Distance calculation and NMDS
 bc_dist <- vegdist(otu_data_clean, method = "bray")
 nmds <- metaMDS(bc_dist)
 
-
+# Adjusting factor levels for visualization
 data$Group <- factor(data$Group, levels = c("G1", "G2", "G3", "G4"), labels = c("I0", "I3", "I8", "I20"))
 data <- rename(data, Antibiotics = Set)
 data$Isolation_source <- factor(data$Isolation_source, levels = c("Grassland_soil", "Forest_soil"), labels = c("Grassland", "Forest"))
+``` 
 
+```{r}
+# Environmental fit model
 group_data <- data[row.names(otu_data_clean), "Group"]
 isolation_source_data <- data[row.names(otu_data_clean), "Isolation_source"]
 antibiotics_data <- data[row.names(otu_data_clean), "Antibiotics"]
 
 env_data <- data.frame(Group=factor(group_data), Isolation_source=factor(isolation_source_data), Antibiotics=factor(antibiotics_data))
-
 envfit_model <- envfit(nmds, env_data, perm=999)
+```
 
 
+```{r}
+# Plotting NMDS with environmental vectors
 plot(nmds$points[,1], nmds$points[,2], xlab="NMDS Axis 1", ylab="NMDS Axis 2", main="NMDS of OTU Data")
-# text(nmds$points[,1], nmds$points[,2], labels=row.names(otu_data_clean), cex=0.8, pos=3)
 plot(envfit_model, p.max=0.05, col="blue") 
 
-
+# Preparing data for boxplots
 nmds_scores <- scores(nmds)
 env_data <- cbind(env_data, NMDS1 = nmds_scores[, 1], NMDS2 = nmds_scores[, 2])
-
 long_data <- pivot_longer(env_data, cols = c("NMDS1", "NMDS2"), names_to = "Axis", values_to = "Value")
 
-
+# NMDS Axis boxplots by groupings
+# By incubation days
 ggplot(long_data, aes(x = Group, y = Value, fill = Group)) +
   geom_boxplot() +
   theme_bw() +
   facet_wrap(~Axis, scales = "free_y") +
   labs(x = "", y = "Value", title = "NMDS Axis by Incubation Days") +
   scale_fill_brewer(palette = "Set1")+
-  theme(plot.title = element_text(hjust = 0.5),legend.position = "none")+
-  NULL
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "none")
 
+# By isolation source
 ggplot(long_data, aes(x = Isolation_source, y = Value, fill = Isolation_source)) +
   geom_boxplot() +
   theme_bw() +
   facet_wrap(~Axis, scales = "free_y") +
   labs(x = "", y = "Value", title = "NMDS Axis by Isolation Source") +
   scale_fill_brewer(palette = "Set1")+
-  theme(plot.title = element_text(hjust = 0.5),legend.position = "none")+
-  NULL
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "none")
 
+# By antibiotics group
 ggplot(long_data, aes(x = Antibiotics, y = Value, fill = Antibiotics)) +
   geom_boxplot() +
   theme_bw() +
   facet_wrap(~Axis, scales = "free_y") +
   labs(x = "", y = "Value", title = "NMDS Axis by Antibiotics Group") +
   scale_fill_brewer(palette = "Set1")+
-  theme(plot.title = element_text(hjust = 0.5),legend.position = "none")+
-  NULL
-
-
-env_data %>% lm(NMDS2 ~ Group + Antibiotics + Isolation_source, data = .) %>% anova()
-env_data %>% lm(NMDS1 ~ Group + Antibiotics + Isolation_source, data = .) %>% anova()
-
-
+  theme(plot.title = element_text(hjust = 0.5), legend.position = "none")
 ```
 
+```{r}
+# Performing statistical analysis
+env_data %>% lm(NMDS2 ~ Group + Antibiotics + Isolation_source, data = .) %>% anova()
+env_data %>% lm(NMDS1 ~ Group + Antibiotics + Isolation_source, data = .) %>% anova()
+```
