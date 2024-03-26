@@ -1,4 +1,4 @@
-# ML_on_Microbiota
+# ML on Microbiota
 This project uses machine learning to explore the impact of different antibiotics on soil microbial communities.
 ## Data Description
 
