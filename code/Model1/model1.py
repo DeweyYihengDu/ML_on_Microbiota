@@ -1,3 +1,6 @@
+# Load the data, preprocess it, train and evaluate the models
+
+
 import pandas as pd
 import numpy as np
 from sklearn.linear_model import Lars, Lasso, ElasticNet
