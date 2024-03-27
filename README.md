@@ -1,5 +1,7 @@
 # Investigating the impact of antibiotics on environmental microbiota through machine learning models
 
+![figure](./ML_figure1.png)
+
 This project uses machine learning to explore the impact of different antibiotics on soil microbial communities.
 ## Data Description
 
